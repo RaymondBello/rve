@@ -1,0 +1,4 @@
+*.ini
+*.o
+build/
+build-em/
