@@ -1,17 +1,7 @@
-[submodule "lib/imgui"]
-	path = lib/imgui
+[submodule "rv32ima/lib/imgui"]
+	path = rv32ima/lib/imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
-[submodule "lib/emsdk"]
-	path = lib/emsdk
-	url = https://github.com/emscripten-core/emsdk.git
-[submodule "lib/implot"]
-	path = lib/implot
+[submodule "rv32ima/lib/implot"]
+	path = rv32ima/lib/implot
 	url = https://github.com/epezent/implot.git
-[submodule "lib/glm"]
-	path = lib/glm
-	url = https://github.com/g-truc/glm.git
-[submodule "lib/SDL"]
-	path = lib/SDL
-	url = https://github.com/libsdl-org/SDL.git
-	branch = SDL2

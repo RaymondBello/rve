@@ -4,34 +4,34 @@ CXX = g++
 BUILD_DIR = build
 EXE = rv32ima
 
-ASSETS_DIR = ../assets
-IMGUI_DIR  = ../lib/imgui
-IMPLOT_DIR = ../lib/implot
-GLM_DIR    = ../lib/glm
-ENTT_DIR   = ../lib/entt
-STB_DIR    = ../lib/stb
-SDL_DIR    = /remote/us01home59/bello/bin/bin
+SOURCE_DIR = src
+ASSETS_DIR = assets
+IMGUI_DIR  = lib/imgui
+IMPLOT_DIR = lib/implot
 
 # Create build directory if it doesn't exist
 $(shell mkdir -p $(BUILD_DIR))
 
 # Source Files
-SOURCES = main.cpp #app.cpp stb.cpp
+SOURCES =  $(SOURCE_DIR)/main.cpp 
+SOURCES += $(SOURCE_DIR)/rv32ima.cpp $(SOURCE_DIR)/emu.cpp
 # # ImGui Files
-# SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
-# SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
+SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 # # ImPlot Files
-# SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_items.cpp $(IMPLOT_DIR)/implot_demo.cpp
+SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_items.cpp $(IMPLOT_DIR)/implot_demo.cpp
 
+# Setup objects
 OBJS = $(addprefix $(BUILD_DIR)/, $(notdir $(SOURCES:.cpp=.o)))
 UNAME_S = $(shell uname -s)
 
+# Compiler flags
 CXXFLAGS = -std=c++17
 CXXFLAGS += -g -Wall -Wformat
+# Compiler include 
+CXXFLAGS += -I$(SOURCE_DIR)
 CXXFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(IMGUI_DIR)/examples/libs/emscripten
 CXXFLAGS += -I$(IMPLOT_DIR)
-CXXFLAGS += -I$(GLM_DIR)
-CXXFLAGS += -I$(STB_DIR)
 
 # Source Includes
 LIBS = 
@@ -63,8 +63,12 @@ ifeq ($(OS), Windows_NT)
 	CFLAGS = $(CXXFLAGS)
 endif
 
+
 # Build rules
 $(BUILD_DIR)/%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/%.o: $(IMGUI_DIR)/%.cpp
@@ -76,6 +80,11 @@ $(BUILD_DIR)/%.o: $(IMGUI_DIR)/backends/%.cpp
 $(BUILD_DIR)/%.o: $(IMPLOT_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+$(BUILD_DIR)/$(EXE): $(OBJS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
+
+
+# Build commands
 all: $(BUILD_DIR)/$(EXE)
 	@echo Build complete for $(ECHO_MESSAGE)
 
@@ -84,9 +93,6 @@ run: all
 
 rerun: clean
 	make run -j8
-	
-$(BUILD_DIR)/$(EXE): $(OBJS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 
 clean:
 	rm -rf $(BUILD_DIR)
