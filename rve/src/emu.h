@@ -21,7 +21,7 @@
 #include "imgui_impl_opengl3.h"
 #include "implot.h"
 // RISC core
-#include "rv32ima.h"
+#include "rv32.h"
 
 
 struct EmuSettings
