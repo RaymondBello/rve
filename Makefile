@@ -1,5 +1,8 @@
 all:
-	make -C rv32ima
+	make -C rve
 
 rerun:
-	make -C rv32ima rerun
+	make -C rve rerun
+
+run:
+	make -C rve run
