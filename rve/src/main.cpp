@@ -1,17 +1,21 @@
 
 #include "stdio.h"
-#include "emu.h"
+#include "app.h"
 
-int main() {
 
-    Emulator emu;
+
+int main(int argc, char *argv[])
+{
+    // Main program
+    App app;
     // Init
-    emu.initializeWindow();
-    emu.initializeUI();
+    app.initializeWindow();
+    app.initializeUI();
+    app.initializeEmu(argc, argv);
     // Running
-    emu.renderLoop();
+    app.renderLoop();
     // Close
-    emu.destroyUI();
+    app.destroyUI();
 
     return 0;
 }

@@ -1,0 +1,11 @@
+{
+    "cSpell.words": [
+        "xreg"
+    ],
+    "files.associations": {
+        "*.svi": "systemverilog",
+        "limits": "cpp",
+        "functional": "cpp",
+        "memory": "cpp"
+    }
+}
