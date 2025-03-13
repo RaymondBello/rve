@@ -1,10 +1,10 @@
-[submodule "rve/lib/imgui"]
-	path = rve/lib/imgui
-	url = https://github.com/ocornut/imgui.git
-	branch = docking
-[submodule "rve/lib/implot"]
-	path = rve/lib/implot
-	url = https://github.com/epezent/implot.git
+# [submodule "rve/lib/imgui"]
+# 	path = rve/lib/imgui
+# 	url = https://github.com/ocornut/imgui.git
+# 	branch = docking
+# [submodule "rve/lib/implot"]
+# 	path = rve/lib/implot
+# 	url = https://github.com/epezent/implot.git
 [submodule "riscv-tests"]
 	path = riscv-tests
 	url = https://github.com/riscv/riscv-tests

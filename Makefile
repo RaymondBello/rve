@@ -6,3 +6,6 @@ rerun:
 
 run:
 	make -C rve run
+
+isa: 
+	make -C rve isa
