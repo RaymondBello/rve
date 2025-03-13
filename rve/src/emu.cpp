@@ -722,7 +722,7 @@ void Emulator::initializeElf(const char *path)
 {
     initialize();
     // Load ELF image
-    // loadElf()
+    loadElf(path, strlen(path) + 1, memory, MEM_SIZE);
     cpu.init(memory, singleStep);
     // cpu.dump();
 }

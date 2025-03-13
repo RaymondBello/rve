@@ -1,98 +1,60 @@
 
 #include "loader.h"
 
+
 int loadElf(const char *path, uint64_t path_len, uint8_t *data, uint64_t data_len)
 {
-    // Print the path of the ELF binary being loaded
-    std::cout << "Loading ELF binary '" << path << "'" << std::endl;
 
-    // Open the ELF file
-    int fd = open(path, O_RDONLY);
-    if (fd < 0)
+    // Convert C string to std::string
+    std::string filepath(path, path_len);
+    printf("INFO: Loading ELF binary %s\n", filepath.c_str());
+
+    // Open in binary mode
+    std::ifstream elf_file(filepath, std::ios::binary);
+    if (!elf_file.is_open())
     {
-        std::cerr << "Failed to open ELF file: " << strerror(errno) << std::endl;
+        printf("ERRO: Failed to open ELF file\n");
         return 1;
     }
 
-    // Get file size
-    struct stat st;
-    if (fstat(fd, &st) < 0)
+    // Read the ELF header
+    Elf64_Ehdr elf_header;
+    elf_file.read(reinterpret_cast<char *>(&elf_header), sizeof(elf_header));
+    if (elf_file.gcount() != sizeof(elf_header))
     {
-        std::cerr << "Failed to get file stats: " << strerror(errno) << std::endl;
-        close(fd);
+        printf("ERRO: Failed to read ELF header\n");
         return 2;
     }
+    printf("INFO: Read %0d bytes of ELF header\n", elf_file.gcount());
 
-    // Map the file into memory
-    void *elf_data = mmap(nullptr, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (elf_data == MAP_FAILED)
+    printf("INFO: ELF header.e_type is %0d\n", elf_header.e_type);
+    printf("INFO: ELF header.e_machine is %0d\n", elf_header.e_machine);
+    printf("INFO: ELF header.e_version is %0d\n", elf_header.e_version);
+    printf("INFO: ELF header.e_entry is %0d\n", elf_header.e_entry);
+    printf("INFO: ELF header.e_phoff is %0d\n", elf_header.e_phoff);
+    printf("INFO: ELF header.e_shoff is %0d\n", elf_header.e_shoff);
+    printf("INFO: ELF header.e_flags is %0d\n", elf_header.e_flags);
+    printf("INFO: ELF header.e_ehsize is %0d\n", elf_header.e_ehsize);
+    printf("INFO: ELF header.e_phentsize is %0d\n", elf_header.e_phentsize);
+    printf("INFO: ELF header.e_phnum is %0d\n", elf_header.e_phnum);
+    printf("INFO: ELF header.e_shentsize is %0d\n", elf_header.e_shentsize);
+    printf("INFO: ELF header.e_shnum is %0d\n", elf_header.e_shnum);
+    printf("INFO: ELF header.e_shstrndx is %0d\n", elf_header.e_shstrndx);
+
+
+
+    // Seek to section header table
+    elf_file.seekg(elf_header.e_shoff, std::ios::beg);
+    printf("INFO: Found %0d sections in ELF \n", elf_header.e_shnum);
+
+    std::vector<Elf64_Shdr> sections(elf_header.e_shnum);
+    elf_file.read(reinterpret_cast<char *>(sections.data()), elf_header.e_shnum * sizeof(Elf64_Shdr));
+    if (elf_file.gcount() != static_cast<std::streamsize>(elf_header.e_shnum * sizeof(Elf64_Shdr)))
     {
-        std::cerr << "Failed to map ELF file: " << strerror(errno) << std::endl;
-        close(fd);
-        return 3;
+        printf("ERRO: Failed to read ELF section header\n");
+        return 2;
     }
-
-    // Parse ELF header
-    auto *ehdr = static_cast<Elf64_Ehdr *>(elf_data);
-
-    // Check if it's a valid ELF file
-    if (memcmp(ehdr->e_ident, ELFMAG, SELFMAG) != 0)
-    {
-        std::cerr << "Not a valid ELF file" << std::endl;
-        munmap(elf_data, st.st_size);
-        close(fd);
-        return 4;
-    }
-
-    // Get section header table
-    auto *shdr = static_cast<Elf64_Shdr *>(
-        static_cast<void *>(static_cast<uint8_t *>(elf_data) + ehdr->e_shoff));
-
-    // Get section header string table
-    Elf64_Shdr *sh_strtab = &shdr[ehdr->e_shstrndx];
-    const char *strtab = static_cast<const char *>(elf_data) + sh_strtab->sh_offset;
-
-    // Iterate through each section
-    for (int i = 0; i < ehdr->e_shnum; i++)
-    {
-        Elf64_Shdr *section = &shdr[i];
-
-        // Skip sections that are not of type SHT_PROGBITS (1)
-        if (section->sh_type != SHT_PROGBITS)
-        {
-            continue;
-        }
-
-        const char *name = strtab + section->sh_name;
-        uint64_t addr = section->sh_addr;
-        uint64_t addr_real = addr & 0x7FFFFFFF; // Mask the address to fit within 31 bits
-        uint64_t size = section->sh_size;
-
-        // Print details about the section being loaded
-        std::cout << "Loading ELF section '" << name << "' @"
-                  << std::hex << addr << " (@" << addr_real << ") size="
-                  << std::dec << size << std::endl;
-
-        // Check if the section's end exceeds the provided data buffer's length
-        if (addr_real + size > data_len)
-        {
-            std::cerr << "ELF section too big or offset too great" << std::endl;
-            munmap(elf_data, st.st_size);
-            close(fd);
-            return 5;
-        }
-
-        // Copy section data to the appropriate location in the data buffer
-        uint8_t *section_data = static_cast<uint8_t *>(elf_data) + section->sh_offset;
-        for (uint64_t j = 0; j < size; j++)
-        {
-            data[addr_real + j] = section_data[j];
-        }
-    }
-
-    // Clean up
-    munmap(elf_data, st.st_size);
-    close(fd);
+    printf("INFO: Read %0d bytes of ELF section header\n", elf_file.gcount());
 
     return 0;
 }
@@ -133,4 +95,6 @@ int loadBinary(const char *path, uint64_t path_len, uint8_t *data, uint64_t data
 
     // Report success
     std::cout << "Successfully loaded binary file, size: " << file_size << " bytes" << std::endl;
+
+    return 0;
 }

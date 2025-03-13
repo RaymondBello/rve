@@ -188,10 +188,21 @@ int App::initializeEmu(int argc, char *argv[])
 
     emu.initialize();
 
-    if (elf_file_name) {
+    if (elf_file_name) 
+    {
         printf("INFO: ELF File: %s\n", elf_file_name);
         emu.initializeElf(elf_file_name);
+    } 
+    else if (bin_file_name)
+    {
+        printf("INFO: Binary File: %s\n", bin_file_name);
+    } 
+    else if (dtb_file_name)
+    {
+        printf("INFO: DTB File: %s\n", dtb_file_name);
     }
+    
+
 
     return 0;
 }
@@ -410,17 +421,17 @@ void App::createCpuState()
     }
 
     // Window
-    ImGui::SeparatorText("CPU Registers");
+    ImGui::SeparatorText("Registers");
 
     if (ImGui::BeginTable("CPU Registers", 4))
     {
-        for (int item = 0; item < 32; item++)
+        for (int i = 0; i < 32; i++)
         {
             ImGui::TableNextColumn();
-            ImGui::Text("x%02d: 0x%04X", item, item*item);
+            ImGui::Text("x%02d: 0x%04X", i, emu.cpu.xreg[i]);
         }
         ImGui::EndTable();
-        // HelpMarker("CPU Registers x0-31");
+        HelpMarker("CPU Registers x0-31");
     }
     ImGui::SeparatorText("Control Signals");
     if (ImGui::BeginTable("Control Signals", 3))

@@ -7,7 +7,8 @@
                 "${workspaceFolder}/rve/lib/**",
                 "${workspaceFolder}/rve/src/**",
                 "${workspaceFolder}/rve/**",
-                "/usr/include/SDL2"
+                "/usr/include/SDL2",
+                "${workspaceFolder}/rve/lib/elfy"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

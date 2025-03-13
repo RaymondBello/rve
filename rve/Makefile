@@ -9,12 +9,16 @@ ASSETS_DIR = assets
 IMGUI_DIR  = lib/imgui
 IMPLOT_DIR = lib/implot
 
+# RISCV ISA Tests
+ISA_TEST_DIR = $(ASSETS_DIR)/isa-test
+ISA_TEST ?= rv32ui-p-add
+
 # Create build directory if it doesn't exist
 $(shell mkdir -p $(BUILD_DIR))
 
 # Source Files
 SOURCES =  $(SOURCE_DIR)/main.cpp 
-SOURCES += $(SOURCE_DIR)/rv32.cpp $(SOURCE_DIR)/emu.cpp $(SOURCE_DIR)/app.cpp
+SOURCES += $(SOURCE_DIR)/rv32.cpp $(SOURCE_DIR)/emu.cpp $(SOURCE_DIR)/loader.cpp $(SOURCE_DIR)/app.cpp
 # # ImGui Files
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
@@ -90,6 +94,9 @@ all: $(BUILD_DIR)/$(EXE)
 
 run: all
 	./$(BUILD_DIR)/$(EXE)
+
+isa: all
+	./$(BUILD_DIR)/$(EXE) -e $(ISA_TEST_DIR)/$(ISA_TEST)
 
 rerun: clean
 	make run -j8

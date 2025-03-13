@@ -3,9 +3,10 @@
         "xreg"
     ],
     "files.associations": {
-        "*.svi": "systemverilog",
-        "limits": "cpp",
-        "functional": "cpp",
-        "memory": "cpp"
+      "*.svi": "systemverilog",
+      "limits": "cpp",
+      "functional": "cpp",
+      "memory": "cpp",
+      "iostream": "cpp"
     }
 }

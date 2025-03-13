@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include "rv32.h"
+#include "loader.h"
 
 using uint = uint32_t;
 using uint16 = uint16_t;
