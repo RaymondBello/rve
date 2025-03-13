@@ -725,6 +725,7 @@ void Emulator::initializeElf(const char *path)
     loadElf(path, strlen(path) + 1, memory, MEM_SIZE);
     cpu.init(memory, singleStep);
     // cpu.dump();
+    exit(0);
 }
 
 void Emulator::initializeBin(const char *path)

@@ -9,9 +9,9 @@ int main(int argc, char *argv[])
     // Main program
     App app;
     // Init
+    app.initializeEmu(argc, argv);
     app.initializeWindow();
     app.initializeUI();
-    app.initializeEmu(argc, argv);
     // Running
     app.renderLoop();
     // Close
