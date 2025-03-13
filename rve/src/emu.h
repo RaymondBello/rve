@@ -10,6 +10,8 @@ using uint16 = uint16_t;
 using uint8 = uint8_t;
 
 // Instruction Decoding
+uint signExtend(uint x, uint b);
+
 typedef struct
 {
     uint rs1;
@@ -93,6 +95,9 @@ public:
     uint8_t *memory;
     RV32 cpu;
 
+    // debugging
+    bool singleStep = false;
+
     Emulator(/* args */);
     ~Emulator();
 
@@ -100,6 +105,7 @@ public:
     void initializeElf(const char *path);
     void initializeBin(const char *path);
     void emulate(); // formerly cpu_tick
+    ins_ret insSelect(uint ins_word);
 
     // Instruction defintion
     def(add, FormatR); // rv32i

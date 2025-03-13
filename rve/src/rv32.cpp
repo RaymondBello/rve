@@ -301,7 +301,7 @@ bool RV32::handleTrap(ins_ret *ret, bool isInterrupt)
         writeCsrRaw(CSR_SSTATUS, new_status);
     }
 
-#ifdef VERBOSE
+#ifdef RV32_VERBOSE
     printf("trap: type=%08x value=%08x (IRQ: %d) moved PC from @%08x to @%08x\n", t.type, t.value, is_interrupt, pc, ret->pc_val);
 #endif
     /* debug_single_step = true; */

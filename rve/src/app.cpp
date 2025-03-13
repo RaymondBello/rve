@@ -183,6 +183,10 @@ int App::initializeEmu(int argc, char *argv[])
 
     // Start emulator
     emu = Emulator();
+    emu.singleStep = single_step;
+    printf("INFO: Debug-Mode: %0b\n", single_step);
+
+    emu.initialize();
 
     if (elf_file_name) {
         printf("INFO: ELF File: %s\n", elf_file_name);
@@ -373,8 +377,39 @@ void App::createTerminal()
 
 void App::createCpuState()
 {
-    ImGui::Begin("CPU State");
+    ImGui::Begin("CPU State", NULL, ImGuiWindowFlags_MenuBar);
 
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::BeginMenu("Settings"))
+        {
+            // Menu Items
+            ImGui::MenuItem("Debug-Mode", NULL, &emu.singleStep);
+
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Actions"))
+        {
+            // Menu Items
+            if (ImGui::Button("Load Linux Image")) ImGui::OpenPopup("loadLinux");
+            if (ImGui::Button("Load ELF")) ImGui::OpenPopup("loadElf");
+            if (ImGui::Button("Load Binary")) ImGui::OpenPopup("loadBin");
+
+            // Popups
+            if (ImGui::BeginPopup("loadElf")) {
+                ImGui::Text("Select Elf file");
+                if (ImGui::Button("Load")){
+                    emu.initializeElf("file");
+                }
+                ImGui::EndPopup();
+            }
+
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    // Window
     ImGui::SeparatorText("CPU Registers");
 
     if (ImGui::BeginTable("CPU Registers", 4))

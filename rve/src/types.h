@@ -31,10 +31,5 @@ typedef struct
     uint privilege;
 } csr_state;
 
-// static uint signExtend(uint x, uint b)
-// {
-//     uint m = ((uint)1) << (b - 1);
-//     return (x ^ m) - m;
-// }
 
 #endif

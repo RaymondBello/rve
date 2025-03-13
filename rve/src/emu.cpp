@@ -1,11 +1,25 @@
 #include "emu.h"
 
-using uint = uint32_t;
-using uint16 = uint16_t;
-using uint8 = uint8_t;
+
 ////////////////////////////////////////////////////////////////
 // Instruction Decoding
 ////////////////////////////////////////////////////////////////
+// Function to sign-extend an unsigned integer `x` based on the bit width `b`.
+uint signExtend(uint x, uint b)
+{
+    // Calculate the mask `m`. This sets a single bit at position (b - 1),
+    // which corresponds to the most significant bit of a signed value with `b` bits.
+    // In essence, this is `2^(b-1)`.
+    uint m = ((uint)1) << (b - 1);
+    
+    // Return the result of the sign extension:
+    // 1. The expression `(x ^ m)` toggles the bit at position (b - 1).
+    //    This effectively flips the sign bit of the number.
+    // 2. Subtracting `m` then adjusts the value so that it represents the correct
+    //    negative or positive number in a signed representation within `b` bits.
+    return (x ^ m) - m;
+}
+
 FormatB parse_FormatB(uint word)
 {
     FormatB ret;
@@ -88,11 +102,20 @@ FormatEmpty parse_FormatEmpty(uint word)
 ////////////////////////////////////////////////////////////////
 #define AS_SIGNED(val) (*(int32_t *)&val)
 #define AS_UNSIGNED(val) (*(uint *)&val)
+#define ins_p(name) printf("DBUG: INS %s (%08x)\n", #name, ins_word);
+
 const uint ZERO = 0;
 const uint ONE = 1;
 
 #define imp(name, fmt_t, code) \
     void Emulator::emu_##name(uint ins_word, ins_ret *ret, fmt_t ins) { code }
+
+#define run(name, data, insf) case data: { \
+    if (singleStep) ins_p(name) \
+    emu_##name(ins_word, &ret, insf); \
+    return ret; \
+}
+
 
 #define WR_RD(code)                         \
     {                                       \
@@ -324,18 +347,18 @@ imp(jalr, FormatI, { // rv32i
     WR_RD(cpu.pc + 4);
     WR_PC(cpu.xreg[ins.rs1] + ins.imm);
 })
-// imp(lb, FormatI, { // rv32i
-//     uint tmp = sign_extend(cpu.memGetByte(cpu.xreg[ins.rs1] + ins.imm), 8);
-//     WR_RD(tmp)
-// })
+imp(lb, FormatI, { // rv32i
+    uint tmp = signExtend(cpu.memGetByte(cpu.xreg[ins.rs1] + ins.imm), 8);
+    WR_RD(tmp)
+})
 imp(lbu, FormatI, { // rv32i
     uint tmp = cpu.memGetByte(cpu.xreg[ins.rs1] + ins.imm);
     WR_RD(tmp)
 })
-// imp(lh, FormatI, { // rv32i
-//     uint tmp = sign_extend(cpu.memGetHalfWord(cpu.xreg[ins.rs1] + ins.imm), 16);
-//     WR_RD(tmp)
-// })
+imp(lh, FormatI, { // rv32i
+    uint tmp = signExtend(cpu.memGetHalfWord(cpu.xreg[ins.rs1] + ins.imm), 16);
+    WR_RD(tmp)
+})
 imp(lhu, FormatI, { // rv32i
     uint tmp = cpu.memGetHalfWord(cpu.xreg[ins.rs1] + ins.imm);
     WR_RD(tmp)
@@ -546,6 +569,137 @@ imp(xori, FormatI, {// rv32i
     WR_RD(cpu.xreg[ins.rs1] ^ ins.imm)
 })
 
+ins_ret Emulator::insSelect(uint ins_word)
+{
+    uint ins_masked;
+    ins_ret ret = cpu.insReturnNoop();
+
+    FormatR ins_FormatR = parse_FormatR(ins_word);
+    FormatI ins_FormatI = parse_FormatI(ins_word);
+    FormatS ins_FormatS = parse_FormatS(ins_word);
+    FormatU ins_FormatU = parse_FormatU(ins_word);
+    FormatJ ins_FormatJ = parse_FormatJ(ins_word);
+    FormatB ins_FormatB = parse_FormatB(ins_word);
+    FormatCSR ins_FormatCSR = parse_FormatCSR(ins_word);
+    FormatEmpty ins_FormatEmpty = parse_FormatEmpty(ins_word);
+
+    if ((ins_word & 0x00000073) == 0x00000073)
+    {
+        // could be CSR instruction
+        ins_FormatCSR.value = cpu.getCsr(ins_FormatCSR.csr, &ret);
+    }
+
+    ins_masked = ins_word & 0x0000007f;
+    switch (ins_masked)
+    {
+        run(auipc, 0x00000017, ins_FormatU)
+        run(jal, 0x0000006f, ins_FormatJ)
+        run(lui, 0x00000037, ins_FormatU)
+    }
+    ins_masked = ins_word & 0x0000707f;
+    switch (ins_masked)
+    {
+        run(addi, 0x00000013, ins_FormatI)
+        run(andi, 0x00007013, ins_FormatI)
+        run(beq, 0x00000063, ins_FormatB)
+        run(bge, 0x00005063, ins_FormatB)
+        run(bgeu, 0x00007063, ins_FormatB)
+        run(blt, 0x00004063, ins_FormatB)
+        run(bltu, 0x00006063, ins_FormatB)
+        run(bne, 0x00001063, ins_FormatB)
+        run(csrrc, 0x00003073, ins_FormatCSR)
+        run(csrrci, 0x00007073, ins_FormatCSR)
+        run(csrrs, 0x00002073, ins_FormatCSR)
+        run(csrrsi, 0x00006073, ins_FormatCSR)
+        run(csrrw, 0x00001073, ins_FormatCSR)
+        run(csrrwi, 0x00005073, ins_FormatCSR)
+        run(fence, 0x0000000f, ins_FormatEmpty)
+        run(fence_i, 0x0000100f, ins_FormatEmpty)
+        run(jalr, 0x00000067, ins_FormatI)
+        run(lb, 0x00000003, ins_FormatI)
+        run(lbu, 0x00004003, ins_FormatI)
+        run(lh, 0x00001003, ins_FormatI)
+        run(lhu, 0x00005003, ins_FormatI)
+        run(lw, 0x00002003, ins_FormatI)
+        run(ori, 0x00006013, ins_FormatI)
+        run(sb, 0x00000023, ins_FormatS)
+        run(sh, 0x00001023, ins_FormatS)
+        run(slti, 0x00002013, ins_FormatI)
+        run(sltiu, 0x00003013, ins_FormatI)
+        run(sw, 0x00002023, ins_FormatS)
+        run(xori, 0x00004013, ins_FormatI)
+    }
+    ins_masked = ins_word & 0xf800707f;
+    switch (ins_masked)
+    {
+        run(amoswap_w, 0x0800202f, ins_FormatR)
+        run(amoadd_w, 0x0000202f, ins_FormatR)
+        run(amoxor_w, 0x2000202f, ins_FormatR)
+        run(amoand_w, 0x6000202f, ins_FormatR)
+        run(amoor_w, 0x4000202f, ins_FormatR)
+        run(amomin_w, 0x8000202f, ins_FormatR)
+        run(amomax_w, 0xa000202f, ins_FormatR)
+        run(amominu_w, 0xc000202f, ins_FormatR)
+        run(amomaxu_w, 0xe000202f, ins_FormatR)
+        run(sc_w, 0x1800202f, ins_FormatR)
+    }
+    ins_masked = ins_word & 0xf9f0707f;
+    switch (ins_masked)
+    {
+        run(lr_w, 0x1000202f, ins_FormatR)
+    }
+    ins_masked = ins_word & 0xfc00707f;
+    switch (ins_masked)
+    {
+        run(slli, 0x00001013, ins_FormatR)
+        run(srai, 0x40005013, ins_FormatR)
+        run(srli, 0x00005013, ins_FormatR)
+    }
+    ins_masked = ins_word & 0xfe00707f;
+    switch (ins_masked)
+    {
+        run(add, 0x00000033, ins_FormatR)
+        run(and, 0x00007033, ins_FormatR)
+        run(div, 0x02004033, ins_FormatR)
+        run(divu, 0x02005033, ins_FormatR)
+        run(mul, 0x02000033, ins_FormatR)
+        run(mulh, 0x02001033, ins_FormatR)
+        run(mulhsu, 0x02002033, ins_FormatR)
+        run(mulhu, 0x02003033, ins_FormatR)
+        run(or, 0x00006033, ins_FormatR)
+        run(rem, 0x02006033, ins_FormatR)
+        run(remu, 0x02007033, ins_FormatR)
+        run(sll, 0x00001033, ins_FormatR)
+        run(slt, 0x00002033, ins_FormatR)
+        run(sltu, 0x00003033, ins_FormatR)
+        run(sra, 0x40005033, ins_FormatR)
+        run(srl, 0x00005033, ins_FormatR)
+        run(sub, 0x40000033, ins_FormatR)
+        run(xor, 0x00004033, ins_FormatR)
+    }
+    ins_masked = ins_word & 0xfe007fff;
+    switch (ins_masked)
+    {
+        run(sfence_vma, 0x12000073, ins_FormatEmpty)
+    }
+    ins_masked = ins_word & 0xffffffff;
+    switch (ins_masked)
+    {
+        run(ebreak, 0x00100073, ins_FormatEmpty)
+        run(ecall, 0x00000073, ins_FormatEmpty)
+        run(mret, 0x30200073, ins_FormatEmpty)
+        run(sret, 0x10200073, ins_FormatEmpty)
+        run(uret, 0x00200073, ins_FormatEmpty)
+        run(wfi, 0x10500073, ins_FormatEmpty)
+    }
+
+    printf("Invalid instruction: %08x\n", ins_word);
+    ret.trap.en = true;
+    ret.trap.type = trap_IllegalInstruction;
+    ret.trap.value = cpu.pc;
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////
 // Emulator Functions
 ////////////////////////////////////////////////////////////////
@@ -569,7 +723,7 @@ void Emulator::initializeElf(const char *path)
     initialize();
     // Load ELF image
     // loadElf()
-    cpu.init(memory, false);
+    cpu.init(memory, singleStep);
     // cpu.dump();
 }
 
@@ -580,6 +734,8 @@ void Emulator::initializeBin(const char *path)
     // loadBin()
 }
 
+
+
 void Emulator::emulate()
 {
     cpu.tick();
@@ -587,11 +743,35 @@ void Emulator::emulate()
     uint32_t ins_word = 0;
     ins_ret ret;
 
-    if ((cpu.pc & 0x3) == 0) {
-        // ins_word = cpu.memGetWord(cpu.pc);
-        // ret = ins
+    if ((cpu.pc & 0x3) == 0)
+    {
+        ins_word = cpu.memGetWord(cpu.pc);
 
+        ret = insSelect(ins_word);
 
+        if (ret.csr_write && !ret.trap.en)
+        {
+            cpu.setCsr(ret.csr_write, ret.csr_val, &ret);
+        }
 
+        if (!ret.trap.en && ret.write_reg < 32 && ret.write_reg > 0)
+        {
+            cpu.xreg[ret.write_reg] = ret.write_val;
+        }
     }
+    else
+    {
+        ret = cpu.insReturnNoop();
+        ret.trap.en = true;
+        ret.trap.type = trap_InstructionAddressMisaligned;
+        ret.trap.value = cpu.pc;
+    }
+
+    if (ret.trap.en)
+    {
+        cpu.handleTrap(&ret, false);
+    }
+
+    // ret.pc_val should be set to pc+4 by default
+    cpu.pc = ret.pc_val;
 }
