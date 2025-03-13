@@ -1,5 +1,6 @@
 *.ini
 *.o
-elfparser
+*.exe
+
 build/
 build-em/

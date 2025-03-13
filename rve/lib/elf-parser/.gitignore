@@ -2,8 +2,7 @@
 *.slo
 *.lo
 *.o
-elfparser
-
+*.exe
 # Compiled Dynamic libraries
 *.so
 
