@@ -8,6 +8,17 @@
 using uint = uint32_t;
 using uint8 = uint8_t;
 
+// Clocking options
+enum CLK_SPEED
+{
+    CLK_MAX = 0,
+    CLK_1HZ = 1,
+    CLK_5HZ = 5,
+    CLK_10HZ = 10,
+    CLK_100HZ = 100,
+    CLK_1000HZ = 1000
+};
+
 typedef struct
 {
     bool en;

@@ -5,57 +5,111 @@
 int loadElf(const char *path, uint64_t path_len, uint8_t *data, uint64_t data_len)
 {
 
-    // Convert C string to std::string
-    std::string filepath(path, path_len);
-    printf("INFO: Loading ELF binary %s\n", filepath.c_str());
-
     // Open in binary mode
-    std::ifstream elf_file(filepath, std::ios::binary);
-    if (!elf_file.is_open())
-    {
+    uint32_t fd = open(path, O_RDONLY | O_SYNC);
+    if (fd != 3) {
         printf("ERRO: Failed to open ELF file\n");
         return 1;
     }
+    printf("INFO: Opened ELF binary file: %s\n", path);
 
-    // Read the ELF header
-    Elf64_Ehdr elf_header;
-    elf_file.read(reinterpret_cast<char *>(&elf_header), sizeof(elf_header));
-    if (elf_file.gcount() != sizeof(elf_header))
+    /* ELF header : at start of file */
+    Elf32_Ehdr eh;
+
+    assert(&eh != NULL);
+    assert(lseek(fd, (off_t)0, SEEK_SET) == (off_t)0);
+    assert(read(fd, (void *)&eh, sizeof(Elf32_Ehdr)) == sizeof(Elf32_Ehdr));
+    printf("INFO: %s Read %0ld bytes of ELF32 Header\n", __func__, sizeof(Elf32_Ehdr));
+
+    if (!strncmp((char *)eh.e_ident, "\177ELF", 4))
     {
-        printf("ERRO: Failed to read ELF header\n");
+        printf("INFO: %s ELFMAGIC = ELF\n", __func__);
+        /* IS a ELF file */
+    }
+    else
+    {
+        printf("ERRO: %s ELFMAGIC mismatch!\n", __func__);
+        /* Not ELF file */
         return 2;
     }
-    printf("INFO: Read %0d bytes of ELF header\n", elf_file.gcount());
 
-    printf("INFO: ELF header.e_type is %0d\n", elf_header.e_type);
-    printf("INFO: ELF header.e_machine is %0d\n", elf_header.e_machine);
-    printf("INFO: ELF header.e_version is %0d\n", elf_header.e_version);
-    printf("INFO: ELF header.e_entry is %0d\n", elf_header.e_entry);
-    printf("INFO: ELF header.e_phoff is %0d\n", elf_header.e_phoff);
-    printf("INFO: ELF header.e_shoff is %0d\n", elf_header.e_shoff);
-    printf("INFO: ELF header.e_flags is %0d\n", elf_header.e_flags);
-    printf("INFO: ELF header.e_ehsize is %0d\n", elf_header.e_ehsize);
-    printf("INFO: ELF header.e_phentsize is %0d\n", elf_header.e_phentsize);
-    printf("INFO: ELF header.e_phnum is %0d\n", elf_header.e_phnum);
-    printf("INFO: ELF header.e_shentsize is %0d\n", elf_header.e_shentsize);
-    printf("INFO: ELF header.e_shnum is %0d\n", elf_header.e_shnum);
-    printf("INFO: ELF header.e_shstrndx is %0d\n", elf_header.e_shstrndx);
-
-
-
-    // Seek to section header table
-    elf_file.seekg(elf_header.e_shoff, std::ios::beg);
-    printf("INFO: Found %0d sections in ELF \n", elf_header.e_shnum);
-
-    std::vector<Elf64_Shdr> sections(elf_header.e_shnum);
-    elf_file.read(reinterpret_cast<char *>(sections.data()), elf_header.e_shnum * sizeof(Elf64_Shdr));
-    if (elf_file.gcount() != static_cast<std::streamsize>(elf_header.e_shnum * sizeof(Elf64_Shdr)))
+    if (eh.e_ident[EI_CLASS] == ELFCLASS64)
     {
-        printf("ERRO: Failed to read ELF section header\n");
-        return 2;
+        printf("ERRO: %s 64b ELF. Currently unsupported...\n", __func__);
+        return 3;
     }
-    printf("INFO: Read %0d bytes of ELF section header\n", elf_file.gcount());
+    else if (eh.e_ident[EI_CLASS] == ELFCLASS32)
+    {
+        printf("INFO: %s 32b ELF\n", __func__);
 
+        // *section - header table is variable size * /
+        Elf32_Shdr *sh_tbl;
+        /* Section header table :  */
+        sh_tbl = (Elf32_Shdr*) malloc(eh.e_shentsize * eh.e_shnum);
+        if (!sh_tbl)
+        {
+            printf("ERRO: %s Failed to allocate %d bytes\n", __func__,
+                   (eh.e_shentsize * eh.e_shnum));
+        }
+        // Read section header table
+        uint32_t i;
+
+        struct ElfSection
+        {
+            uint32_t addr_real;
+            uint32_t offset;
+            uint32_t size;
+            uint8_t* sData;
+        };
+
+        std::vector<ElfSection> sections;
+
+        assert(lseek(fd, (off_t)eh.e_shoff, SEEK_SET)== (off_t)eh.e_shoff);
+        for (i = 0; i < eh.e_shnum; i++) 
+        {
+
+            ElfSection section;
+
+            assert(read(fd, (void *)&sh_tbl[i], eh.e_shentsize) == eh.e_shentsize);
+            if (sh_tbl[i].sh_type == SHT_PROGBITS)
+            {
+                section.addr_real = sh_tbl[i].sh_addr & 0x7FFFFFFF;
+                section.size = sh_tbl[i].sh_size;
+                section.offset = sh_tbl[i].sh_offset;
+                sections.push_back(section);
+            }
+        }
+
+        // Load section data
+        for (int i = 0; i < (int)sections.size(); i++)
+        {
+            uint32_t off = sections[i].offset;
+            uint32_t size = sections[i].size;
+            uint32_t addr = sections[i].addr_real;
+            printf("INFO: %s Section %0d size: %0d bytes\n", __func__, i, size);
+            printf("INFO: %s Section %0d offset: 0x%0x\n", __func__, i, off);
+            printf("INFO: %s Section %0d addr: 0x%0x\n", __func__, i, addr);
+            assert(lseek(fd, (off_t)off, SEEK_SET) == (off_t)off);
+            sections[i].sData = (uint8_t *)malloc( size );
+            assert(read(fd, sections[i].sData, size) == size);
+
+            // Write to data
+            if (addr + size > data_len)
+            {
+                printf("ERRO: %s ELF section too big or offset too great\n", __func__);
+                return 4;
+            }
+            for (uint32_t byte = 0; byte < size; byte++)
+            {
+                data[addr + byte] = sections[i].sData[byte];
+                // printf("%0x\n", sections[i].sData[byte]);
+            }
+        }
+        
+        printf("INFO: Loaded Elf into memory\n");
+    }
+
+    close(fd);
     return 0;
 }
 

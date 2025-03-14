@@ -1,5 +1,6 @@
 
 CXX = g++
+CC  = gcc
 
 BUILD_DIR = build
 EXE = rve
@@ -8,10 +9,13 @@ SOURCE_DIR = src
 ASSETS_DIR = assets
 IMGUI_DIR  = lib/imgui
 IMPLOT_DIR = lib/implot
+ELFPARSER_DIR = lib/elf-parser
 
 # RISCV ISA Tests
 ISA_TEST_DIR = $(ASSETS_DIR)/isa-test
-ISA_TEST ?= rv32ui-p-add
+ISA_TEST  ?= rv32ui-p-add
+ISAFLAGS ?= -re
+ISA_TEST_FILES = $(filter-out %.dump, $(notdir $(wildcard $(ISA_TEST_DIR)/*)))
 
 # Create build directory if it doesn't exist
 $(shell mkdir -p $(BUILD_DIR))
@@ -19,19 +23,22 @@ $(shell mkdir -p $(BUILD_DIR))
 # Source Files
 SOURCES =  $(SOURCE_DIR)/main.cpp 
 SOURCES += $(SOURCE_DIR)/rv32.cpp $(SOURCE_DIR)/emu.cpp $(SOURCE_DIR)/loader.cpp $(SOURCE_DIR)/app.cpp
-# # ImGui Files
+# ImGui Files
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-# # ImPlot Files
+# ImPlot Files
 SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_items.cpp $(IMPLOT_DIR)/implot_demo.cpp
 
 # Setup objects
-OBJS = $(addprefix $(BUILD_DIR)/, $(notdir $(SOURCES:.cpp=.o)))
-UNAME_S = $(shell uname -s)
+CPP_SOURCES := $(filter %.cpp, $(SOURCES))
+C_SOURCES   := $(filter %.c, $(SOURCES))
+# Source Object files
+OBJS := $(addprefix $(BUILD_DIR)/, $(notdir $(CPP_SOURCES:.cpp=.o) )) 
+OBJS += $(addprefix $(BUILD_DIR)/, $(notdir $(C_SOURCES:.c=.o) ))
 
-# Compiler flags
-CXXFLAGS = -std=c++17
-CXXFLAGS += -g -Wall -Wformat
+UNAME_S := $(shell uname -s)
+
+
 # Compiler include 
 CXXFLAGS += -I$(SOURCE_DIR)
 CXXFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(IMGUI_DIR)/examples/libs/emscripten
@@ -67,6 +74,10 @@ ifeq ($(OS), Windows_NT)
 	CFLAGS = $(CXXFLAGS)
 endif
 
+# C & C++ Compiler flags
+CXXFLAGS += -g -Wall -Wformat
+CCFLAGS  := $(CXXFLAGS)
+CXXFLAGS += -std=c++17
 
 # Build rules
 $(BUILD_DIR)/%.o: %.cpp
@@ -96,7 +107,12 @@ run: all
 	./$(BUILD_DIR)/$(EXE)
 
 isa: all
-	./$(BUILD_DIR)/$(EXE) -e $(ISA_TEST_DIR)/$(ISA_TEST)
+	@echo ============ $(ISA_TEST) ============
+	./$(BUILD_DIR)/$(EXE) $(ISAFLAGS) $(ISA_TEST_DIR)/$(ISA_TEST)
+	@echo =====================================
+
+isas: all
+	@$(foreach test, $(ISA_TEST_FILES), ./$(BUILD_DIR)/$(EXE) $(ISAFLAGS) $(ISA_TEST_DIR)/$(test);)
 
 rerun: clean
 	make run -j8

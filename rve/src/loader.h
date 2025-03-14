@@ -10,16 +10,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <assert.h>
 #include <sys/mman.h>
 
-// #include <stdio.h>
-// #include <string>
-// // #include <libelf.h>
-// #include <elf.h>
-// #include <sys/mman.h>
-// #include <dlfcn.h>
-// #include <stdint.h>
-// #include <stdlib.h>
 
 // Function to load a Linux image from the specified file path into memory.
 // Parameters:

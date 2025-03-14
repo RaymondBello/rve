@@ -10,8 +10,8 @@ cd rv32ima-linux
 Or
 ``` csh
 git clone https://github.com/RaymondBello/rv32ima-linux.git
-git submodule update --init --recursive
 cd rv32ima-linux
+git submodule update --init --recursive
 ```
 
 ## Adding submodules
@@ -22,7 +22,7 @@ git submodule add -b <branch> <url> <path>
 ## Running Emulator
 ### Running RISCV ISA Tests
 ``` csh
-make isa
+make isas ISAFLAGS=-rse
 ```
 ### Running Emulator
 ``` csh

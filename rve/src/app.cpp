@@ -130,9 +130,13 @@ int App::initializeUI()
 
 int App::initializeEmu(int argc, char *argv[])
 {
+
+    // Start emulator
+    emu = Emulator();
+    emu.initialize();
+
     int i;
     int show_help = 0;
-    bool single_step = false;
 
     // Filenames
     const char *elf_file_name = 0;
@@ -158,7 +162,11 @@ int App::initializeEmu(int argc, char *argv[])
                         break;
                     case 's':
                         param_continue = 1;
-                        single_step = 1;
+                        emu.debugMode = true;
+                        break;
+                    case 'r':
+                        param_continue = 1;
+                        emu.running = true;
                         break;
                     default: 
                         if(param_continue) param_continue = 0;
@@ -181,28 +189,19 @@ int App::initializeEmu(int argc, char *argv[])
         return 1;
     }
 
-    // Start emulator
-    emu = Emulator();
-    emu.singleStep = single_step;
-    printf("INFO: Debug-Mode: %0b\n", single_step);
-
-    emu.initialize();
-
-    if (elf_file_name) 
+    if (elf_file_name)
     {
         printf("INFO: ELF File: %s\n", elf_file_name);
         emu.initializeElf(elf_file_name);
-    } 
+    }
     else if (bin_file_name)
     {
         printf("INFO: Binary File: %s\n", bin_file_name);
-    } 
+    }
     else if (dtb_file_name)
     {
         printf("INFO: DTB File: %s\n", dtb_file_name);
     }
-    
-
 
     return 0;
 }
@@ -227,7 +226,6 @@ void App::endRender()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    
     ////////////// RENDER END //////////////
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -305,6 +303,7 @@ void App::renderLoop()
     while (running)
 #endif
     {
+        stepEmu();
         handleEvents();
         beginRender();
         drawUI();
@@ -351,11 +350,12 @@ void App::createMenubar()
             ImGui::MenuItem("Paste", "CTRL+V");
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("View"))
+        if (ImGui::BeginMenu("Views"))
         {
             ImGui::MenuItem("Terminal", NULL, &settings.show_terminal_window);
             ImGui::MenuItem("Demo Window", NULL, &settings.show_demo_window);
             ImGui::MenuItem("Plot Demo Window", NULL, &settings.show_plot_demo_window);
+            ImGui::MenuItem("CPU State", NULL, &settings.show_cpu_state);
             ImGui::EndMenu();
         }
         ImGuiIO &io = ImGui::GetIO();
@@ -395,21 +395,26 @@ void App::createCpuState()
         if (ImGui::BeginMenu("Settings"))
         {
             // Menu Items
-            ImGui::MenuItem("Debug-Mode", NULL, &emu.singleStep);
+            ImGui::MenuItem("Debug-Mode", NULL, &emu.debugMode);
 
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Actions"))
         {
             // Menu Items
-            if (ImGui::Button("Load Linux Image")) ImGui::OpenPopup("loadLinux");
-            if (ImGui::Button("Load ELF")) ImGui::OpenPopup("loadElf");
-            if (ImGui::Button("Load Binary")) ImGui::OpenPopup("loadBin");
+            if (ImGui::Button("Load Linux Image"))
+                ImGui::OpenPopup("loadLinux");
+            if (ImGui::Button("Load ELF"))
+                ImGui::OpenPopup("loadElf");
+            if (ImGui::Button("Load Binary"))
+                ImGui::OpenPopup("loadBin");
 
             // Popups
-            if (ImGui::BeginPopup("loadElf")) {
+            if (ImGui::BeginPopup("loadElf"))
+            {
                 ImGui::Text("Select Elf file");
-                if (ImGui::Button("Load")){
+                if (ImGui::Button("Load"))
+                {
                     emu.initializeElf("file");
                 }
                 ImGui::EndPopup();
@@ -417,7 +422,32 @@ void App::createCpuState()
 
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Clock"))
+        {
+            ImGui::InputInt("Clock Freq.", &emu.clk_freq_sel, 1);
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMenuBar();
+    }
+
+    if (ImGui:: Button("Start/Stop"))
+    {
+        if (emu.ready_to_run) 
+        {
+            emu.running = !emu.running;
+        }
+        else 
+        {
+            printf("Not ready to execute. Memory maybe corrupted\n");
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Reset"))
+    {
+        emu.running = false;
+        emu.ready_to_run = false;
+        emu.initialize();
     }
 
     // Window
@@ -438,17 +468,45 @@ void App::createCpuState()
     {
         {
             ImGui::TableNextColumn();
-            ImGui::Text("PC: 0x%04X", 0x8f3e);
+            ImGui::Text("PC: 0x%04X", emu.cpu.pc);
             ImGui::TableNextColumn();
-            ImGui::Text("Clock: 0x%04X", 0x8fff);
+            ImGui::Text("Clock: 0x%04X", emu.cpu.clock);
             ImGui::TableNextColumn();
-            ImGui::Text("DebugMode: %s", true?"Enabled":"Disabled");
+            ImGui::Text("DebugMode: %s", emu.debugMode ? "Enabled" : "Disabled");
             ImGui::TableNextColumn();
-            ImGui::Text("Rsrv en: 0x%04X", 0x8fff);
+            ImGui::Text("Rsrv en: 0x%04X", emu.cpu.reservation_en);
             ImGui::TableNextColumn();
-            ImGui::Text("Rsrv addr: 0x%04X", 0x8fff);
+            ImGui::Text("Rsrv addr: 0x%04X", emu.cpu.reservation_addr);
+            ImGui::TableNextColumn();
+            ImGui::Text("Running: %s", emu.running ? "Running":"Halted");
         }
         ImGui::EndTable();
     }
     ImGui::End();
+}
+
+void App::stepEmu()
+{
+    if (emu.running)
+    {
+        // ImGuiIO io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
+        (void)io;
+
+        emu.time_sum += 1.0 / io.Framerate; // seconds
+
+        if (emu.clk_freq_sel != -1)
+        {
+            if (emu.time_sum >= emu.sec_per_cycle)
+            {
+                emu.time_sum = 0; // reset timer
+
+                emu.emulate();
+
+                emu.sec_per_cycle = 1.0 / std::max(1, emu.clk_freq_sel);
+            }
+        } else {
+            emu.emulate();
+        }
+    }
 }

@@ -33,7 +33,7 @@ struct AppSettings
     // Window settings
     bool show_demo_window = false;      // Imgui Demo
     bool show_plot_demo_window = false; // Implot Demo
-    bool show_terminal_window = true;
+    bool show_terminal_window = false;
     bool show_cpu_state = true;
 
     // Emulator settings
@@ -60,8 +60,9 @@ public:
     ~App();
     int initializeWindow();
     int initializeUI();
-    int initializeEmu(int argc, char *argv[]);
     int destroyUI();
+    int initializeEmu(int argc, char *argv[]);
+    void stepEmu();
     // Rendering
     void beginRender();
     void endRender();

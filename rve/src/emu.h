@@ -97,7 +97,17 @@ public:
     RV32 cpu;
 
     // debugging
-    bool singleStep = false;
+    bool debugMode = false;
+    bool running = false;
+
+    // Control
+    bool ready_to_run = false;
+
+    // Clock frequency
+    int clk_freq_sel = -1; // Hertz
+
+    float time_sum = 0;
+    float sec_per_cycle = 1.0 / clk_freq_sel;
 
     Emulator(/* args */);
     ~Emulator();

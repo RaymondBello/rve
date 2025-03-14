@@ -110,12 +110,14 @@ const uint ONE = 1;
 #define imp(name, fmt_t, code) \
     void Emulator::emu_##name(uint ins_word, ins_ret *ret, fmt_t ins) { code }
 
-#define run(name, data, insf) case data: { \
-    if (singleStep) ins_p(name) \
-    emu_##name(ins_word, &ret, insf); \
-    return ret; \
-}
-
+#define run(name, data, insf)                     \
+    case data:                                    \
+    {                                             \
+        if (debugMode)                            \
+            ins_p(name)                           \
+                emu_##name(ins_word, &ret, insf); \
+        return ret;                               \
+    }
 
 #define WR_RD(code)                         \
     {                                       \
@@ -716,6 +718,7 @@ void Emulator::initialize()
     printf("INFO: Emulator started\n");
     cpu = RV32();
     memory = (uint8_t *)malloc(MEM_SIZE);
+    cpu.init(memory, debugMode);
 }
 
 void Emulator::initializeElf(const char *path)
@@ -723,9 +726,8 @@ void Emulator::initializeElf(const char *path)
     initialize();
     // Load ELF image
     loadElf(path, strlen(path) + 1, memory, MEM_SIZE);
-    cpu.init(memory, singleStep);
-    // cpu.dump();
-    exit(0);
+    cpu.init(memory, debugMode);
+    ready_to_run = true;
 }
 
 void Emulator::initializeBin(const char *path)
@@ -775,4 +777,6 @@ void Emulator::emulate()
 
     // ret.pc_val should be set to pc+4 by default
     cpu.pc = ret.pc_val;
+
+    // cpu.dump();
 }
