@@ -6,6 +6,7 @@ BUILD_DIR = build
 EXE = rve
 
 SOURCE_DIR = src
+INCLUDE_DIR = include
 ASSETS_DIR = assets
 IMGUI_DIR  = lib/imgui
 IMPLOT_DIR = lib/implot
@@ -40,7 +41,7 @@ UNAME_S := $(shell uname -s)
 
 
 # Compiler include 
-CXXFLAGS += -I$(SOURCE_DIR)
+CXXFLAGS += -I$(SOURCE_DIR) -I$(INCLUDE_DIR)
 CXXFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(IMGUI_DIR)/examples/libs/emscripten
 CXXFLAGS += -I$(IMPLOT_DIR)
 

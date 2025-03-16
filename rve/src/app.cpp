@@ -390,6 +390,20 @@ void App::createCpuState()
 {
     ImGui::Begin("CPU State", NULL, ImGuiWindowFlags_MenuBar);
 
+    elfFileDialog.Display();
+    if (elfFileDialog.HasSelected())
+    {
+        emu.elf_file_path = elfFileDialog.GetSelected().string();
+        elfFileDialog.ClearSelected();
+    }
+    linuxFileDialog.Display();
+    if (linuxFileDialog.HasSelected())
+    {
+        emu.bin_file_path = linuxFileDialog.GetSelected().string();
+        linuxFileDialog.ClearSelected();
+    }
+
+    // Menubar
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("Settings"))
@@ -401,25 +415,6 @@ void App::createCpuState()
         }
         if (ImGui::BeginMenu("Actions"))
         {
-            // Menu Items
-            if (ImGui::Button("Load Linux Image"))
-                ImGui::OpenPopup("loadLinux");
-            if (ImGui::Button("Load ELF"))
-                ImGui::OpenPopup("loadElf");
-            if (ImGui::Button("Load Binary"))
-                ImGui::OpenPopup("loadBin");
-
-            // Popups
-            if (ImGui::BeginPopup("loadElf"))
-            {
-                ImGui::Text("Select Elf file");
-                if (ImGui::Button("Load"))
-                {
-                    emu.initializeElf("file");
-                }
-                ImGui::EndPopup();
-            }
-
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Clock"))
@@ -427,10 +422,43 @@ void App::createCpuState()
             ImGui::InputInt("Clock Freq.", &emu.clk_freq_sel, 1);
             ImGui::EndMenu();
         }
-
         ImGui::EndMenuBar();
     }
 
+    // Memory Loading
+    if (ImGui::CollapsingHeader("Memory Loader"))
+    {
+        { // ELF Loading
+            if (ImGui::Button("Select ELF"))
+            {
+                elfFileDialog.SetTitle("Select ELF file");
+                elfFileDialog.Open();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Load ELF"))
+            {
+                emu.initializeElf(emu.elf_file_path.c_str());
+            }
+            ImGui::SameLine();
+            ImGui::Text("%s", emu.elf_file_path.c_str());
+        }
+        { // Linux Loading
+            if (ImGui::Button("Select IMG"))
+            {
+                linuxFileDialog.SetTitle("Select Linux image");
+                linuxFileDialog.Open();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Load IMG"))
+            {
+                emu.initializeElf(emu.bin_file_path.c_str());
+            }
+            ImGui::SameLine();
+            ImGui::Text("%s", emu.bin_file_path.c_str());
+        }
+    }
+    // Start/Stop/Step/Reset
+    ImGui::SeparatorText("Commands");
     if (ImGui:: Button("Start/Stop"))
     {
         if (emu.ready_to_run) 
@@ -443,6 +471,10 @@ void App::createCpuState()
         }
     }
     ImGui::SameLine();
+    if (ImGui::Button("Step"))
+    {
+    }
+    ImGui::SameLine();
     if (ImGui::Button("Reset"))
     {
         emu.running = false;
@@ -450,9 +482,8 @@ void App::createCpuState()
         emu.initialize();
     }
 
-    // Window
+    // Registers & Control Signals
     ImGui::SeparatorText("Registers");
-
     if (ImGui::BeginTable("CPU Registers", 4))
     {
         for (int i = 0; i < 32; i++)
@@ -482,6 +513,11 @@ void App::createCpuState()
         }
         ImGui::EndTable();
     }
+
+    // RAM
+    ImGui::SeparatorText("RAM");
+    mem_editor.DrawContents(emu.memory, emu.MEM_SIZE, 0x80000000);
+
     ImGui::End();
 }
 

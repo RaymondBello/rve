@@ -6,95 +6,101 @@
 #include "rv32.h"
 #include "loader.h"
 
-using uint = uint32_t;
+using u32 = uint32_t;
 using uint16 = uint16_t;
-using uint8 = uint8_t;
+using u8 = uint8_t;
 
 // Instruction Decoding
-uint signExtend(uint x, uint b);
+u32 signExtend(u32 x, u32 b);
 
 typedef struct
 {
-    uint rs1;
-    uint rs2;
-    uint imm;
+    u32 rs1;
+    u32 rs2;
+    u32 imm;
 } FormatB;
 
-FormatB parse_FormatB(uint word);
+FormatB parse_FormatB(u32 word);
 
 typedef struct
 {
-    uint csr;
-    uint rs;
-    uint rd;
-    uint value;
+    u32 csr;
+    u32 rs;
+    u32 rd;
+    u32 value;
 } FormatCSR;
 
-FormatCSR parse_FormatCSR(uint word);
+FormatCSR parse_FormatCSR(u32 word);
 
 typedef struct
 {
-    uint rd;
-    uint rs1;
-    uint imm;
+    u32 rd;
+    u32 rs1;
+    u32 imm;
 } FormatI;
 
-FormatI parse_FormatI(uint word);
+FormatI parse_FormatI(u32 word);
 
 typedef struct
 {
-    uint rd;
-    uint imm;
+    u32 rd;
+    u32 imm;
 } FormatJ;
 
-FormatJ parse_FormatJ(uint word);
+FormatJ parse_FormatJ(u32 word);
 
 typedef struct
 {
-    uint rd;
-    uint rs1;
-    uint rs2;
-    uint rs3;
+    u32 rd;
+    u32 rs1;
+    u32 rs2;
+    u32 rs3;
 } FormatR;
 
-FormatR parse_FormatR(uint word);
+FormatR parse_FormatR(u32 word);
 
 typedef struct
 {
-    uint rs1;
-    uint rs2;
-    uint imm;
+    u32 rs1;
+    u32 rs2;
+    u32 imm;
 } FormatS;
 
-FormatS parse_FormatS(uint word);
+FormatS parse_FormatS(u32 word);
 
 typedef struct
 {
-    uint rd;
-    uint imm;
+    u32 rd;
+    u32 imm;
 } FormatU;
 
-FormatU parse_FormatU(uint word);
+FormatU parse_FormatU(u32 word);
 
 typedef struct
 {
 } FormatEmpty;
 
-FormatEmpty parse_FormatEmpty(uint word);
+FormatEmpty parse_FormatEmpty(u32 word);
 
 
 
 // Emulator
 #define def(name, fmt_t) \
-    void emu_##name(uint ins_word, ins_ret *ret, fmt_t ins)
+    void emu_##name(u32 ins_word, ins_ret *ret, fmt_t ins)
 
-const int MEM_SIZE = 1024 * 1024 * 128; // 128MiB
 
 class Emulator
 {
 public:
+    int MEM_SIZE = 1024 * 1024 * 128; // 128MiB
+
     uint8_t *memory;
     RV32 cpu;
+
+    // Filenames
+    std::string elf_file_path = "no elf selected";
+    std::string dts_file_path = "no dts selected";
+    std::string bin_file_path = "no image selected";
 
     // debugging
     bool debugMode = false;
@@ -116,7 +122,7 @@ public:
     void initializeElf(const char *path);
     void initializeBin(const char *path);
     void emulate(); // formerly cpu_tick
-    ins_ret insSelect(uint ins_word);
+    ins_ret insSelect(u32 ins_word);
 
     // Instruction defintion
     def(add, FormatR); // rv32i

@@ -20,6 +20,9 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "implot.h"
+// Utilities
+#include "mem_editor.h"
+#include "file_dialog.h"
 // RISC core
 #include "emu.h"
 
@@ -39,6 +42,8 @@ struct AppSettings
     // Emulator settings
 };
 
+static MemoryEditor mem_editor;
+
 class App
 {
     bool running;
@@ -54,6 +59,8 @@ class App
 
     // Emulator
     Emulator emu;
+    ImGui::FileBrowser elfFileDialog;
+    ImGui::FileBrowser linuxFileDialog;
 
 public:
     App(/* args */);

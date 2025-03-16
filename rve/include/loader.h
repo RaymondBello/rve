@@ -14,6 +14,14 @@
 #include <sys/mman.h>
 
 
+struct ElfSection
+{
+    uint32_t addr_real;
+    uint32_t offset;
+    uint32_t size;
+    std::vector<uint8_t> sData;
+};
+
 // Function to load a Linux image from the specified file path into memory.
 // Parameters:
 // - path: A pointer to a constant character array representing the file path of the Linux image.
