@@ -8,7 +8,7 @@ run:
 	make -C rve run
 
 isa: 
-	make -C rve isa ISA_TEST=rv32um-p-div
+	make -C rve isa ISA_TEST=rv32ua-p-lrsc
 
 isas: 
 	make -C rve isas

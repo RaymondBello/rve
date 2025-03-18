@@ -14,7 +14,7 @@ ELFPARSER_DIR = lib/elf-parser
 
 # RISCV ISA Tests
 ISA_TEST_DIR = $(ASSETS_DIR)/isa-test
-ISA_TEST  ?= rv32ui-p-add
+ISA_TEST  ?= rv32ua-p-lrsc
 ISAFLAGS ?= -re
 ISA_TEST_FILES = $(filter-out %.dump, $(notdir $(wildcard $(ISA_TEST_DIR)/*)))
 
