@@ -500,7 +500,8 @@ void App::createCpuState()
         for (int i = 0; i < 32; i++)
         {
             ImGui::TableNextColumn();
-            ImGui::Text("x%02d: 0x%04X", i, emu.cpu.xreg[i]);
+
+            ImGui::Text("%s: 0x%04X", rv_regs[i], emu.cpu.xreg[i]);
         }
         ImGui::EndTable();
         HelpMarker("CPU Registers x0-31");
@@ -538,6 +539,7 @@ void App::createDisasm()
     const int buffer_size = 30;
     static char buf[buffer_size][80];
     static u32 pc[buffer_size];
+
 
     ImGui::Begin("Disassembler");
 
