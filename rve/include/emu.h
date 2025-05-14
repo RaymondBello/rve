@@ -3,8 +3,10 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <sys/mman.h>
 #include "rv32.h"
 #include "loader.h"
+#include "disasm.h"
 
 using u32 = uint32_t;
 using uint16 = uint16_t;
@@ -110,7 +112,7 @@ public:
     bool ready_to_run = false;
 
     // Clock frequency
-    int clk_freq_sel = -1; // Hertz
+    int clk_freq_sel = 10; // Hertz
 
     float time_sum = 0;
     float sec_per_cycle = 1.0 / clk_freq_sel;
@@ -119,10 +121,15 @@ public:
     ~Emulator();
 
     void initialize();
-    void initializeElf(const char *path);
     void initializeBin(const char *path);
+    void initializeElf(const char *path);
+    void initializeElfDts(const char *elf_file, const char *dts_file);
     void emulate(); // formerly cpu_tick
     ins_ret insSelect(u32 ins_word);
+
+    // File utilities
+    u8 getMmapPtr(const char *path);
+    u8 getFileSize(const char *path);
 
     // Instruction defintion
     def(add, FormatR); // rv32i

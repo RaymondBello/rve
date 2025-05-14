@@ -178,7 +178,7 @@ public:
     RV32();
     ~RV32();
 
-    bool init(u8 *memory, bool debug_mode);
+    bool init(u8 *memory, u8 *dtb, bool debug_mode);
     void dump();
     void tick();
 

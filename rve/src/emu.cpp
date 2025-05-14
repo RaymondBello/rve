@@ -633,12 +633,27 @@ Emulator::~Emulator()
 {
 }
 
+u8 Emulator::getFileSize(const char *path)
+{
+    struct stat st;
+    stat(path, &st);
+    return st.st_size;
+}
+
+u8 Emulator::getMmapPtr(const char *path)
+{
+    size_t filesize = getMmapPtr(path);
+    int fd = open(path, O_RDONLY, 0);
+    // u8 *mmapped_data = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
+    // return mmapped_data;
+}
+
 void Emulator::initialize()
 {
     printf("INFO: Emulator started\n");
     cpu = RV32();
     memory = (uint8_t *)malloc(MEM_SIZE);
-    cpu.init(memory, debugMode);
+    cpu.init(memory, NULL, debugMode);
 }
 
 void Emulator::initializeElf(const char *path)
@@ -648,8 +663,20 @@ void Emulator::initializeElf(const char *path)
     if (loadElf(path, strlen(path) + 1, memory, MEM_SIZE) != 0)
         return;
 
-    cpu.init(memory, debugMode);
+    cpu.init(memory, NULL, debugMode);
     elf_file_path = path;
+    ready_to_run = true;
+}
+
+void Emulator::initializeElfDts(const char *elf_file, const char *dts_file)
+{
+    initialize();
+    // Load ELF image
+    if (loadElf(elf_file, strlen(elf_file) + 1, memory, MEM_SIZE) != 0)
+        return;
+
+    // cpu.init(memory, dts, debugMode);
+    elf_file_path = elf_file;
     ready_to_run = true;
 }
 
@@ -660,7 +687,12 @@ void Emulator::initializeBin(const char *path)
     // loadBin()
 }
 
-
+void print_inst(uint64_t pc, uint32_t inst)
+{
+    char buf[80] = {0};
+    disasm_inst(buf, sizeof(buf), rv64, pc, inst);
+    printf("%016" PRIx64 ":  %s\n", pc, buf);
+}
 
 void Emulator::emulate()
 {
@@ -692,6 +724,9 @@ void Emulator::emulate()
         ret.trap.type = trap_InstructionAddressMisaligned;
         ret.trap.value = cpu.pc;
     }
+
+    if (debugMode)
+        print_inst(cpu.pc, ins_word);
 
     // if (ret.trap.en)
     // {
@@ -725,4 +760,5 @@ void Emulator::emulate()
     cpu.pc = ret.pc_val;
 
     // cpu.dump();
+
 }

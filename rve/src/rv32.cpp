@@ -9,7 +9,7 @@ RV32::~RV32()
 {
 }
 
-bool RV32::init(u8 *memory, bool debug_mode = false)
+bool RV32::init(u8 *memory, u8 *dtb, bool debug_mode = false)
 {
     // reset clock
     clock = 0;
@@ -26,7 +26,7 @@ bool RV32::init(u8 *memory, bool debug_mode = false)
 
     debug_single_step = debug_mode;
 
-    // dtb = dtb;
+    dtb = dtb;
 
     clint.msip = false;
     clint.mtimecmp_lo = 0;

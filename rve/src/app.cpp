@@ -1,6 +1,6 @@
 #include "app.h"
 
-static void HelpMarker(const char* desc)
+static void HelpMarker(const char *desc)
 {
     ImGui::TextDisabled("(?)");
     if (ImGui::BeginItemTooltip())
@@ -29,7 +29,7 @@ App::~App()
     printf("INFO: Closing %s\n", settings.name.c_str());
 }
 
-int App::initializeWindow() 
+int App::initializeWindow()
 {
     int status;
     status = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
@@ -93,7 +93,7 @@ int App::initializeWindow()
     return 0;
 }
 
-int App::initializeUI() 
+int App::initializeUI()
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -116,7 +116,7 @@ int App::initializeUI()
         style.WindowRounding = 5.0f;
         style.FrameRounding = 5.0f;
         style.PopupRounding = 5.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 0.5f;
     }
     // Setup backend
     ImGui_ImplSDL2_InitForOpenGL(window, window_context);
@@ -148,32 +148,39 @@ int App::initializeEmu(int argc, char *argv[])
         const char *param = argv[i];
         int param_continue = 0;
 
-        do {
-            if (param[0] == '-' || param_continue) {
-                switch (param[1]) {
-                    case 'b':
-                        bin_file_name = (++i < argc) ? argv[i] : 0;
-                        break;
-                    case 'd':
-                        dtb_file_name = (++i < argc) ? argv[i] : 0;
-                        break;
-                    case 'e':
-                        elf_file_name = (++i < argc) ? argv[i] : 0;
-                        break;
-                    case 's':
-                        param_continue = 1;
-                        emu.debugMode = true;
-                        break;
-                    case 'r':
-                        param_continue = 1;
-                        emu.running = true;
-                        break;
-                    default: 
-                        if(param_continue) param_continue = 0;
-                        else show_help = 1;
-                        break;
+        do
+        {
+            if (param[0] == '-' || param_continue)
+            {
+                switch (param[1])
+                {
+                case 'b':
+                    bin_file_name = (++i < argc) ? argv[i] : 0;
+                    break;
+                case 'd':
+                    dtb_file_name = (++i < argc) ? argv[i] : 0;
+                    break;
+                case 'e':
+                    elf_file_name = (++i < argc) ? argv[i] : 0;
+                    break;
+                case 's':
+                    param_continue = 1;
+                    emu.debugMode = true;
+                    break;
+                case 'r':
+                    param_continue = 1;
+                    emu.running = true;
+                    break;
+                default:
+                    if (param_continue)
+                        param_continue = 0;
+                    else
+                        show_help = 1;
+                    break;
                 }
-            } else {
+            }
+            else
+            {
                 show_help = 1;
                 break;
             }
@@ -194,11 +201,11 @@ int App::initializeEmu(int argc, char *argv[])
         printf("INFO: ELF File: %s\n", elf_file_name);
         emu.initializeElf(elf_file_name);
     }
-    else if (bin_file_name)
+    if (bin_file_name)
     {
         printf("INFO: Binary File: %s\n", bin_file_name);
     }
-    else if (dtb_file_name)
+    if (dtb_file_name)
     {
         printf("INFO: DTB File: %s\n", dtb_file_name);
     }
@@ -289,6 +296,9 @@ void App::drawUI()
 
     if (settings.show_cpu_state)
         createCpuState();
+
+    if (settings.show_disasm)
+        createDisasm();
 }
 
 void App::renderLoop()
@@ -356,6 +366,7 @@ void App::createMenubar()
             ImGui::MenuItem("Demo Window", NULL, &settings.show_demo_window);
             ImGui::MenuItem("Plot Demo Window", NULL, &settings.show_plot_demo_window);
             ImGui::MenuItem("CPU State", NULL, &settings.show_cpu_state);
+            ImGui::MenuItem("Disassembler", NULL, &settings.show_disasm);
             ImGui::EndMenu();
         }
         ImGuiIO &io = ImGui::GetIO();
@@ -429,13 +440,13 @@ void App::createCpuState()
     if (ImGui::CollapsingHeader("Memory Loader"))
     {
         { // ELF Loading
-            if (ImGui::Button("Select ELF"))
+            if (ImGui::Button("1.Select ELF"))
             {
                 elfFileDialog.SetTitle("Select ELF file");
                 elfFileDialog.Open();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Load ELF"))
+            if (ImGui::Button("2.Load ELF"))
             {
                 emu.initializeElf(emu.elf_file_path.c_str());
             }
@@ -443,13 +454,13 @@ void App::createCpuState()
             ImGui::Text("%s", emu.elf_file_path.c_str());
         }
         { // Linux Loading
-            if (ImGui::Button("Select IMG"))
+            if (ImGui::Button("1.Select IMG"))
             {
                 linuxFileDialog.SetTitle("Select Linux image");
                 linuxFileDialog.Open();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Load IMG"))
+            if (ImGui::Button("2.Load IMG"))
             {
                 emu.initializeElf(emu.bin_file_path.c_str());
             }
@@ -459,13 +470,13 @@ void App::createCpuState()
     }
     // Start/Stop/Step/Reset
     ImGui::SeparatorText("Commands");
-    if (ImGui:: Button("Start/Stop"))
+    if (ImGui::Button("Start/Stop"))
     {
-        if (emu.ready_to_run) 
+        if (emu.ready_to_run)
         {
             emu.running = !emu.running;
         }
-        else 
+        else
         {
             printf("Not ready to execute. Memory maybe corrupted\n");
         }
@@ -509,7 +520,7 @@ void App::createCpuState()
             ImGui::TableNextColumn();
             ImGui::Text("Rsrv addr: 0x%04X", emu.cpu.reservation_addr);
             ImGui::TableNextColumn();
-            ImGui::Text("Running: %s", emu.running ? "Running":"Halted");
+            ImGui::Text("Running: %s", emu.running ? "Running" : "Halted");
         }
         ImGui::EndTable();
     }
@@ -517,6 +528,39 @@ void App::createCpuState()
     // RAM
     ImGui::SeparatorText("RAM");
     mem_editor.DrawContents(emu.memory, emu.MEM_SIZE, 0x80000000);
+
+    ImGui::End();
+}
+
+void App::createDisasm()
+{
+    static u32 prev_pc;
+    const int buffer_size = 30;
+    static char buf[buffer_size][80];
+    static u32 pc[buffer_size];
+
+    ImGui::Begin("Disassembler");
+
+
+    if (prev_pc != emu.cpu.pc)
+    {
+        // Remove the oldest element by shifting elements down
+        for (size_t i = 0; i < buffer_size - 1; ++i)
+        {
+            pc[i] = pc[i + 1];
+            std::memcpy(buf[i], buf[i + 1], sizeof(buf[i]));
+        }
+
+        // Append the new data at the end
+        disasm_inst(buf[buffer_size - 1], sizeof(buf[buffer_size - 1]), rv32, emu.cpu.pc, emu.cpu.memGetWord(emu.cpu.pc));
+        prev_pc = emu.cpu.pc;
+        pc[buffer_size - 1] = prev_pc;
+    }
+
+    for (int i = 0; i < buffer_size; i++)
+    {
+        ImGui::Text("%016" PRIx64 ":  %s\n", pc[i], buf[i]);
+    }
 
     ImGui::End();
 }
@@ -541,7 +585,9 @@ void App::stepEmu()
 
                 emu.sec_per_cycle = 1.0 / std::max(1, emu.clk_freq_sel);
             }
-        } else {
+        }
+        else
+        {
             emu.emulate();
         }
     }

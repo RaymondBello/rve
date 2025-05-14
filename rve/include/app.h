@@ -26,18 +26,19 @@
 // RISC core
 #include "emu.h"
 
-
 struct AppSettings
 {
     std::string name = "RVE RISC-V Emulator";
-    std::string font = "assets/fonts/SFPro.ttf";
-    float font_size = 19.0f;
+    // std::string font = "assets/fonts/SFPro.ttf";
+    std::string font = "assets/fonts/FiraCode-Regular.ttf";
+    float font_size = 18.0f;
 
     // Window settings
     bool show_demo_window = false;      // Imgui Demo
     bool show_plot_demo_window = false; // Implot Demo
     bool show_terminal_window = false;
     bool show_cpu_state = true;
+    bool show_disasm = true;
 
     // Emulator settings
 };
@@ -81,6 +82,7 @@ public:
     void createMenubar();
     void createTerminal();
     void createCpuState();
+    void createDisasm();
 };
 
 #endif 

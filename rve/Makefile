@@ -10,6 +10,7 @@ INCLUDE_DIR = include
 ASSETS_DIR = assets
 IMGUI_DIR  = lib/imgui
 IMPLOT_DIR = lib/implot
+DISASM_DIR = lib/disasm
 ELFPARSER_DIR = lib/elf-parser
 
 # RISCV ISA Tests
@@ -29,6 +30,8 @@ SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 # ImPlot Files
 SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_items.cpp $(IMPLOT_DIR)/implot_demo.cpp
+# Disasm Files
+SOURCES += $(DISASM_DIR)/disasm.cpp
 
 # Setup objects
 CPP_SOURCES := $(filter %.cpp, $(SOURCES))
@@ -43,7 +46,7 @@ UNAME_S := $(shell uname -s)
 # Compiler include 
 CXXFLAGS += -I$(SOURCE_DIR) -I$(INCLUDE_DIR)
 CXXFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(IMGUI_DIR)/examples/libs/emscripten
-CXXFLAGS += -I$(IMPLOT_DIR)
+CXXFLAGS += -I$(IMPLOT_DIR) -I$(DISASM_DIR)
 
 # Source Includes
 LIBS = 
@@ -94,6 +97,9 @@ $(BUILD_DIR)/%.o: $(IMGUI_DIR)/backends/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/%.o: $(IMPLOT_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/%.o: $(DISASM_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(BUILD_DIR)/$(EXE): $(OBJS)
